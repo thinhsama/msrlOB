@@ -149,8 +149,7 @@ def update_bbx(bbx, action):
 def main(args):
 
     # Class category of PASCAL that the RL agent will be searching
-    device = torch.device("cuda:0" if (
-        torch.cuda.is_available() and args.use_gpu) else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image_names = np.array(load_images_names_in_data_set(
         'aeroplane_trainval', path_voc))
     feature_exactrator = torchvision.models.vgg16(
