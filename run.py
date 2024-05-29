@@ -20,7 +20,7 @@ GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
 epochs = 50
-epochs = 2
+epochs = 10
 NUM_ACTIONS = 6
 his_actions = 4
 subscale = 1/2
@@ -290,7 +290,7 @@ def main(args):
             if iou > 0.5:
                 action = 5
             else:
-                action = dqn.choose_action(state, 0)
+                action = dqn.choose_action(state, EPISILO)
             new_bbx = update_bbx(bbx, action)
             if action == 5:
                 break
