@@ -242,7 +242,30 @@ def main(args):
             i, round(ep_reward, 3)))  # 0.001 precision
 
     # save model's weights
-    torch.save(dqn.state_dict(), 'dqn.pth')
+    torch.save(dqn.eval_net.state_dict(), 'eval_net.pth')
+
+    # load model's weights and perform inference
+    dqn.eval_net.load_state_dict(torch.load('eval_net.pth'))
+    dqn.eval_net.eval()
+    dqn.eval_net.to(device)
+    print("model loaded")
+
+    # calculate the average IOU over test set
+    image_names = np.array(load_images_names_in_data_set(
+        'aeroplane_test', path_voc))
+    single_plane_image_names = []
+    single_plane_image_gts = []
+    for image_name in image_names:
+        annotation = get_bb_of_gt_from_pascal_xml_annotation(
+            image_name, path_voc)
+        if (len(annotation) > 1):
+            continue
+        single_plane_image_names.append(image_name)
+        single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...
+
+    # save single_plane_image_names and single_plane_image_gts for future use
+    np.save('single_plane_image_names.npy', single_plane_image_names)
+    np.save('single_plane_image_gts.npy', single_plane_image_gts)
 
 
 if __name__ == '__main__':
