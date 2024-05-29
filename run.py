@@ -20,6 +20,7 @@ GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
 epochs = 50
+epochs = 10
 NUM_ACTIONS = 6
 his_actions = 4
 subscale = 1/2
@@ -239,6 +240,9 @@ def main(args):
             EPISILO -= 0.1
         print("episode: {} , this epoch reward is {}".format(
             i, round(ep_reward, 3)))  # 0.001 precision
+
+    # save model's weights
+    # torch.save(dqn.eval_net.state_dict(), 'eval_net.pth')
 
 
 if __name__ == '__main__':
