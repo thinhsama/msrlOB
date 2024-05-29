@@ -27,6 +27,7 @@ subscale = 1/2
 NUM_STATES = 7*7*512+his_actions*NUM_ACTIONS
 path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
 path_voc = "/kaggle/input/pascal-voc-2007/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/"
+path_voc_test = "/kaggle/input/pascal-voc-2007/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/"
 
 
 class DQN():
@@ -252,12 +253,12 @@ def main(args):
 
     # calculate the average IOU over test set
     image_names = np.array(load_images_names_in_data_set(
-        'aeroplane_test', path_voc))
+        'aeroplane_test', path_voc_test))
     single_plane_image_names = []
     single_plane_image_gts = []
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
-            image_name, path_voc)
+            image_name, path_voc_test)
         if (len(annotation) > 1):
             continue
         single_plane_image_names.append(image_name)
