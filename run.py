@@ -267,6 +267,7 @@ def main(args):
     # save single_plane_image_names and single_plane_image_gts for future use
     np.save('single_plane_image_names.npy', single_plane_image_names)
     np.save('single_plane_image_gts.npy', single_plane_image_gts)
+    print("single_plane_image_names and single_plane_image_gts saved")
 
 
 if __name__ == '__main__':
