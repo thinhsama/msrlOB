@@ -268,6 +268,41 @@ def main(args):
     np.save('single_plane_image_names.npy', single_plane_image_names)
     np.save('single_plane_image_gts.npy', single_plane_image_gts)
     print("single_plane_image_names and single_plane_image_gts saved")
+    # print out the average IOU
+    total_iou = 0
+    for index, image_name in enumerate(single_plane_image_names):
+        image_path = os.path.join(
+            path_voc_test + "JPEGImages", image_name + ".jpg")
+        image_original = Image.open(image_path)
+        width, height = image_original.size
+        bbx_gt = single_plane_image_gts[index]
+
+        image = init_process(image_original, trans).to(device)
+        bbx = [0, width, 0, height]
+        history_action = np.zeros(his_actions*NUM_ACTIONS)
+        with torch.no_grad():
+            vector = feature_exactrator(
+                image).cpu().detach().numpy().reshape(7*7*512)
+        state = np.concatenate([history_action, vector])
+        step = 0
+        while (step < 10):
+            iou = cal_iou(bbx, bbx_gt)
+            if iou > 0.5:
+                action = 5
+            else:
+                action = dqn.choose_action(state, 0)
+            new_bbx = update_bbx(bbx, action)
+            if action == 5:
+                break
+            state = np.concatenate([history_action, vector])
+            bbx = new_bbx
+            step += 1
+        total_iou += cal_iou(bbx, bbx_gt)
+        # write out bbx, bbx_gt to file
+        with open('bbx.txt', 'a') as f:
+            f.write("bbx: {}, bbx_gt: {}\n".format(bbx, bbx_gt))
+    print("average IOU is {:.3f}".format(
+        total_iou/len(single_plane_image_names)))
 
 
 if __name__ == '__main__':
