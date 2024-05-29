@@ -149,6 +149,8 @@ def update_bbx(bbx, action):
 
 
 def main(args):
+    # best reward is set to -inf
+    best_reward = float("-inf")
 
     # Class category of PASCAL that the RL agent will be searching
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -242,8 +244,13 @@ def main(args):
         print("episode: {} , this epoch reward is {}".format(
             i, round(ep_reward, 3)))  # 0.001 precision
 
+        if ep_reward > best_reward:
+            best_reward = ep_reward
+            torch.save(dqn.eval_net.state_dict(), 'eval_net.pth')
+            print("model saved")
+
     # save model's weights
-    torch.save(dqn.eval_net.state_dict(), 'eval_net.pth')
+    # torch.save(dqn.eval_net.state_dict(), 'eval_net.pth')
 
     # load model's weights and perform inference
     dqn.eval_net.load_state_dict(torch.load('eval_net.pth'))
