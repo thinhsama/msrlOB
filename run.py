@@ -161,7 +161,7 @@ def main(args):
     single_plane_image_gts = []
     dqn = DQN(device)
     EPISILO = args.EPISILO
-
+    subscale = args.Subscale
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
             image_name, path_voc)
@@ -318,5 +318,5 @@ if __name__ == '__main__':
                         help='gpu device ids for CUDA_VISIBLE_DEVICES')
     parser.add_argument('--use_gpu', default=True, action='store_true')
     parser.add_argument('--EPISILO', type=int, default=1.0)
-
+    parser.add_argument('--Subscale', type=float, default=3/4)
     main(parser.parse_args())
