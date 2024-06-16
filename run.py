@@ -115,37 +115,67 @@ def inter_process(image, bbx, transform=None):
     return image_crop.unsqueeze(0)
 
 
+# def update_bbx(bbx, action):
+#     new_bbx = np.zeros(4)
+#     if action == 0:  # top left
+#         new_bbx[0] = bbx[0]  # x1
+#         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
+#         new_bbx[2] = bbx[2]  # y1
+#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+#     elif action == 1:  # top right
+#         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
+#         new_bbx[1] = bbx[1]  # x2
+#         new_bbx[2] = bbx[2]  # y1
+#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+#     elif action == 2:  # lower left
+#         new_bbx[0] = bbx[0]  # x1
+#         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
+#         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
+#         new_bbx[3] = bbx[3]  # y2
+#     elif action == 3:  # lower right
+#         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
+#         new_bbx[1] = bbx[1]  # x2
+#         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
+#         new_bbx[3] = bbx[3]  # y2
+#     elif action == 4:  # center
+#         new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
+#         new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
+#         new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
+#         new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
+#     elif action == 5:
+#         new_bbx = bbx
+#     return new_bbx
+
 def update_bbx(bbx, action):
     new_bbx = np.zeros(4)
-    if action == 0:  # top left
+    if action == 0:  # left
         new_bbx[0] = bbx[0]  # x1
         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
         new_bbx[2] = bbx[2]  # y1
-        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
-    elif action == 1:  # top right
+        new_bbx[3] = bbx[3] #+ (bbx[3]-bbx[2]) * subscale  # y2
+    elif action == 1:  # right
         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
         new_bbx[1] = bbx[1]  # x2
         new_bbx[2] = bbx[2]  # y1
-        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
-    elif action == 2:  # lower left
+        new_bbx[3] = bbx[3] # + (bbx[3]-bbx[2]) * subscale  # y2
+    elif action == 2:  # lower 
         new_bbx[0] = bbx[0]  # x1
-        new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
+        new_bbx[1] = bbx[1] #+ (bbx[1]-bbx[0]) * subscale  # x2
         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
         new_bbx[3] = bbx[3]  # y2
-    elif action == 3:  # lower right
-        new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
+    elif action == 3:  # top
+        new_bbx[0] = bbx[0]  #- (bbx[1]-bbx[0]) * subscale  # x1
         new_bbx[1] = bbx[1]  # x2
-        new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
-        new_bbx[3] = bbx[3]  # y2
+        new_bbx[2] = bbx[2]  # y1
+        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
     elif action == 4:  # center
-        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
-        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
-        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
-        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
+        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale  # x1
+        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale  # x2
+        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale  # y1
+        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale  # y2
     elif action == 5:
         new_bbx = bbx
     return new_bbx
-
 
 def main(args):
     # best reward is set to -inf
@@ -310,7 +340,85 @@ def main(args):
     print("average IOU is {:.3f}".format(
         total_iou/len(single_plane_image_names)))
 
+def demo_single_image(args, image_name):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    feature_extractor = torchvision.models.vgg16(
+        pretrained=True).features.to(device)
+    dqn = DQN(device)
+    dqn.eval_net.load_state_dict(torch.load(
+        'eval_net.pth', map_location=torch.device('cpu')))
+    dqn.eval_net.eval()
+    dqn.eval_net.to(device)
 
+    trans = T.Compose([
+        T.Resize((224, 224)),
+        T.ToTensor(),
+    ])
+
+    image_path = os.path.join(
+        path_voc_test + "JPEGImages", image_name + ".jpg")
+    image_original = Image.open(image_path)
+    width, height = image_original.size
+    bbx_gt = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc_test)[
+        0][1:]
+
+    image = init_process(image_original, trans).to(device)
+    bbx = [0, width, 0, height]
+    history_action = np.zeros(his_actions*NUM_ACTIONS)
+    with torch.no_grad():
+        vector = feature_extractor( 
+            image).cpu().detach().numpy().reshape(7*7*512)
+    state = np.concatenate([history_action, vector])
+    step = 0
+
+    while step < 10:
+        iou = cal_iou(bbx, bbx_gt)
+        print('iou co sai khong:', iou)
+        if iou > 0.5:
+            action = 5
+        else:
+            action = dqn.choose_action(state, args.EPISILO)
+        print(action)
+        new_bbx = update_bbx(bbx, action)
+        reward = reward_func(bbx, new_bbx, bbx_gt, action)
+
+        action_vec = np.zeros(NUM_ACTIONS)
+        action_vec[action] = 1.0
+        history_action = np.concatenate(
+            [history_action[NUM_ACTIONS:], action_vec])
+
+        with torch.no_grad():
+            vector = feature_extractor(inter_process(image_original, new_bbx, trans).to(
+                device)).cpu().detach().numpy().reshape(7*7*512)
+            print(vector)
+            num_zeros = np.count_nonzero(vector == 0)
+            print(vector.shape)
+            print(num_zeros)
+        next_state = np.concatenate([history_action, vector])
+
+        dqn.store_transition(state, action, reward, next_state)
+
+        if action == 5:
+            break
+
+        state = next_state
+        bbx = new_bbx
+        step += 1
+
+        # Visualize the bounding box at each step
+        draw = ImageDraw.Draw(image_original)
+
+        draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
+        draw.rectangle([bbx_gt[0], bbx_gt[2], bbx_gt[1], bbx_gt[3]], outline='blue')
+        image_original.show()
+        # save image
+        image_original.save('output/{}_step{}.jpg'.format(image_name, step))
+        time.sleep(0.5)
+
+    print("Final bounding box:", bbx)
+    print("Ground truth bounding box:", bbx_gt)
+    print("Final IOU:", cal_iou(bbx, bbx_gt))
+    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Hierarchical Object Detection with Deep Reinforcement Learning')
@@ -319,4 +427,8 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', default=True, action='store_true')
     parser.add_argument('--EPISILO', type=int, default=1.0)
     parser.add_argument('--Subscale', type=float, default=3/4)
-    main(parser.parse_args())
+    parser.add_argument('--image_name', type=str, default='001373',
+                        help='name of the image for demonstration')
+    #main(parser.parse_args())
+    args = parser.parse_args()
+    demo_single_image(args, args.image_name)
