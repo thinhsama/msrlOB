@@ -19,14 +19,14 @@ LR = 1e-6
 GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
-epochs = 50
+epochs = 500
 NUM_ACTIONS = 6
 his_actions = 4
-subscale = 1/2
+subscale = 3/4
 NUM_STATES = 7*7*512+his_actions*NUM_ACTIONS
 path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
-path_voc = "/content/drive/MyDrive/archive (4)/VOCtrainval_06-Nov-2007/VOC2007"
-path_voc_test = "/content/drive/MyDrive/archive (4)/VOCtest_06-Nov-2007/VOC2007"
+path_voc = r"e:\msrlOB-1\archive (4)\VOCtrainval_06-Nov-2007\VOC2007"
+path_voc_test = r"e:\msrlOB-1\archive (4)\VOCtest_06-Nov-2007\VOC2007"
 
 
 class DQN():
@@ -51,7 +51,7 @@ class DQN():
         state = torch.unsqueeze(torch.FloatTensor(state), 0).to(
             self.device)  # get a 1D array
         if np.random.randn() <= EPISILO:  # random policy
-            action = np.random.randint(0, NUM_ACTIONS)
+            action = np.random.randint(0, NUM_ACTIONS-1)
         else:  # greedy policy
             action_value = self.eval_net.forward(state)
             action = torch.max(action_value, 1)[1].cpu().item()
@@ -158,7 +158,7 @@ def update_bbx(bbx, action):
         new_bbx[1] = bbx[1]  # x2
         new_bbx[2] = bbx[2]  # y1
         new_bbx[3] = bbx[3] # + (bbx[3]-bbx[2]) * subscale  # y2
-    elif action == 2:  # lower 
+    elif action == 2:  # bot 
         new_bbx[0] = bbx[0]  # x1
         new_bbx[1] = bbx[1] #+ (bbx[1]-bbx[0]) * subscale  # x2
         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
@@ -169,10 +169,10 @@ def update_bbx(bbx, action):
         new_bbx[2] = bbx[2]  # y1
         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
     elif action == 4:  # center
-        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale  # x1
-        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale  # x2
-        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale  # y1
-        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale  # y2
+        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
+        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
+        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
+        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
     elif action == 5:
         new_bbx = bbx
     return new_bbx
@@ -230,7 +230,7 @@ def main(args):
             step = 0
             while (step < 10):
                 iou = cal_iou(bbx, bbx_gt)
-                if iou > 0.5:
+                if iou > 0.4:
                     action = 5
                 else:
                     action = dqn.choose_action(state, EPISILO)
@@ -269,7 +269,7 @@ def main(args):
                 step += 1
 
         if (EPISILO > 0.1):
-            EPISILO -= 0.1
+            EPISILO -= 0.05
         print("episode: {} , this epoch reward is {}".format(
             i, round(ep_reward, 3)))  # 0.001 precision
 
@@ -349,7 +349,7 @@ def demo_single_image(args, image_name):
         'eval_net.pth', map_location=torch.device('cpu')))
     dqn.eval_net.eval()
     dqn.eval_net.to(device)
-
+    subscale = args.Subscale
     trans = T.Compose([
         T.Resize((224, 224)),
         T.ToTensor(),
@@ -399,22 +399,26 @@ def demo_single_image(args, image_name):
         dqn.store_transition(state, action, reward, next_state)
 
         if action == 5:
-            break
+            print(f'while terminal step:{step}')
+            #break
+            continue
 
         state = next_state
         bbx = new_bbx
         step += 1
-
+        print(f'while terminal step:{step}')
         # Visualize the bounding box at each step
         draw = ImageDraw.Draw(image_original)
 
-        draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
+        #draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
         draw.rectangle([bbx_gt[0], bbx_gt[2], bbx_gt[1], bbx_gt[3]], outline='blue')
         image_original.show()
         # save image
         image_original.save('output/{}_step{}.jpg'.format(image_name, step))
         time.sleep(0.5)
-
+    draw = ImageDraw.Draw(image_original)
+    draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
+    image_original.show()
     print("Final bounding box:", bbx)
     print("Ground truth bounding box:", bbx_gt)
     print("Final IOU:", cal_iou(bbx, bbx_gt))
@@ -429,6 +433,7 @@ if __name__ == '__main__':
     parser.add_argument('--Subscale', type=float, default=3/4)
     parser.add_argument('--image_name', type=str, default='001373',
                         help='name of the image for demonstration')
-    #main(parser.parse_args())
-    args = parser.parse_args()
-    demo_single_image(args, args.image_name)
+    main(parser.parse_args())
+    #
+    #args = parser.parse_args()
+    #demo_single_image(args, args.image_name)
