@@ -209,7 +209,7 @@ def main(args):
         ep_reward = 0
         for index, image_name in enumerate(single_plane_image_names):
             image_path = os.path.join(
-                path_voc + "JPEGImages", image_name + ".jpg")
+                path_voc + "/JPEGImages", image_name + ".jpg")
             image_original = Image.open(image_path)
             width, height = image_original.size
             # image_original = image_original.resize((224,224))
