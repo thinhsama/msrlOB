@@ -356,7 +356,7 @@ def demo_single_image(args, image_name):
     ])
 
     image_path = os.path.join(
-        path_voc_test + "JPEGImages", image_name + ".jpg")
+        path_voc_test + "/JPEGImages", image_name + ".jpg")
     image_original = Image.open(image_path)
     width, height = image_original.size
     bbx_gt = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc_test)[
