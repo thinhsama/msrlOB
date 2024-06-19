@@ -1,7 +1,7 @@
 import torch
 import torchvision
 from models.Q_net import Q_zoom, Q_refine
-from data import load_images_names_in_data_set, get_bb_of_gt_from_pascal_xml_annotation, get_all_annotations
+from data import load_images_names_in_data_set, get_bb_of_gt_from_pascal_xml_annotation
 import torchvision.transforms as T
 import torch
 import torch.nn as nn
@@ -19,15 +19,18 @@ LR = 1e-6
 GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
-epochs = 500
+epochs = 50
+epochs = 100
+# epochs = 10
+
 NUM_ACTIONS = 6
 his_actions = 4
 subscale = 3/4
 NUM_STATES = 7*7*512+his_actions*NUM_ACTIONS
 path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
-path_voc = r"e:\msrlOB-1\archive (4)\VOCtrainval_06-Nov-2007\VOC2007"
-path_voc_test = r"e:\msrlOB-1\archive (4)\VOCtest_06-Nov-2007\VOC2007"
-#path_voc_test = path_voc
+path_voc = "/kaggle/input/pascal-voc-2007/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/"
+path_voc_test = "/kaggle/input/pascal-voc-2007/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/"
+
 
 class DQN():
     """docstring for DQN"""
@@ -90,7 +93,7 @@ class DQN():
         q_target = torch.where(
             batch_action != 5, q_target_unterminated, batch_reward)
         loss = self.loss_func(q_eval, q_target)
-        print("step loss is {:.3f}".format(loss.cpu().detach().item()))
+        # print("step loss is {:.3f}".format(loss.cpu().detach().item()))
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -146,36 +149,12 @@ def update_bbx(bbx, action):
         new_bbx = bbx
     return new_bbx
 
-# def update_bbx(bbx, action):
-#     new_bbx = np.zeros(4)
-#     if action == 0:  # left
-#         new_bbx[0] = bbx[0]  # x1
-#         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
-#         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[3] #+ (bbx[3]-bbx[2]) * subscale  # y2
-#     elif action == 1:  # right
-#         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
-#         new_bbx[1] = bbx[1]  # x2
-#         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[3] # + (bbx[3]-bbx[2]) * subscale  # y2
-#     elif action == 2:  # bot 
-#         new_bbx[0] = bbx[0]  # x1
-#         new_bbx[1] = bbx[1] #+ (bbx[1]-bbx[0]) * subscale  # x2
-#         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
-#         new_bbx[3] = bbx[3]  # y2
-#     elif action == 3:  # top
-#         new_bbx[0] = bbx[0]  #- (bbx[1]-bbx[0]) * subscale  # x1
-#         new_bbx[1] = bbx[1]  # x2
-#         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
-#     elif action == 4:  # center
-#         new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
-#         new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
-#         new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
-#         new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
-#     elif action == 5:
-#         new_bbx = bbx
-#     return new_bbx
+
+def draw_bounding_box(image, bbx, epoch, step, image_name):
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline="red", width=2)
+    image.save(f"bounding_box_{image_name}_epoch_{epoch}_step_{step}.jpg")
+
 
 def main(args):
     # best reward is set to -inf
@@ -191,12 +170,12 @@ def main(args):
     single_plane_image_gts = []
     dqn = DQN(device)
     EPISILO = args.EPISILO
-    subscale = args.Subscale
+
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
             image_name, path_voc)
-        #if (len(annotation) > 1):
-        #    continue
+        if (len(annotation) > 1):
+            continue
         single_plane_image_names.append(image_name)
         single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...]
 
@@ -209,7 +188,7 @@ def main(args):
         ep_reward = 0
         for index, image_name in enumerate(single_plane_image_names):
             image_path = os.path.join(
-                path_voc, "JPEGImages", image_name + ".jpg")
+                path_voc + "JPEGImages", image_name + ".jpg")
             image_original = Image.open(image_path)
             width, height = image_original.size
             # image_original = image_original.resize((224,224))
@@ -230,7 +209,7 @@ def main(args):
             step = 0
             while (step < 10):
                 iou = cal_iou(bbx, bbx_gt)
-                if (iou > 0.4) & (i<100):
+                if iou > 0.4:
                     action = 5
                 else:
                     action = dqn.choose_action(state, EPISILO)
@@ -257,8 +236,15 @@ def main(args):
                 ep_reward += reward
 
                 if dqn.memory_counter >= MEMORY_CAPACITY:
-                    print("episode: {},".format(i), end=' ')
+                    # print("episode: {},".format(i), end=' ')
                     dqn.learn()
+
+                # Save bounding box for image 009472 after each 10 epochs
+                # if image_name == "001012" and (i + 1) % 10 == 0:
+                if (i+1) % 5 == 0:
+                    image_copy = image_original.copy()
+                    draw_bounding_box(image_copy, bbx,
+                                      i + 1, step, image_name)
 
                 # termation
                 if action == 5:
@@ -288,15 +274,17 @@ def main(args):
     print("model loaded")
 
     # calculate the average IOU over test set
+    # image_names = np.array(load_images_names_in_data_set(
+    #     'aeroplane_test', path_voc_test))
     image_names = np.array(load_images_names_in_data_set(
-        'aeroplane_test', path_voc_test))
+        'aeroplane_trainval', path_voc))
     single_plane_image_names = []
     single_plane_image_gts = []
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
-            image_name, path_voc_test)
-        #if (len(annotation) > 1):
-        #    continue
+            image_name, path_voc)
+        if (len(annotation) > 1):
+            continue
         single_plane_image_names.append(image_name)
         single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...
 
@@ -304,12 +292,11 @@ def main(args):
     np.save('single_plane_image_names.npy', single_plane_image_names)
     np.save('single_plane_image_gts.npy', single_plane_image_gts)
     print("single_plane_image_names and single_plane_image_gts saved")
-    EPISILO = -100
     # print out the average IOU
     total_iou = 0
     for index, image_name in enumerate(single_plane_image_names):
         image_path = os.path.join(
-            path_voc_test + "JPEGImages", image_name + ".jpg")
+            path_voc + "JPEGImages", image_name + ".jpg")
         image_original = Image.open(image_path)
         width, height = image_original.size
         bbx_gt = single_plane_image_gts[index]
@@ -327,120 +314,27 @@ def main(args):
             if iou > 0.4:
                 action = 5
             else:
-                action = dqn.choose_action(state, EPISILO)
+                action = dqn.choose_action(state, 0.1)
             new_bbx = update_bbx(bbx, action)
             if action == 5:
                 break
             state = np.concatenate([history_action, vector])
             bbx = new_bbx
             step += 1
-        annotations = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc_test)
-        ma_iou = 0
-        for i in range(len(annotations)):
-            cur_bbx = annotations[i][1:]
-            ma_iou = max(ma_iou, cal_iou(bbx, cur_bbx))
-        total_iou += ma_iou
-        #total_iou += cal_iou(bbx, bbx_gt)
+        total_iou += cal_iou(bbx, bbx_gt)
         # write out bbx, bbx_gt to file
         with open('bbx.txt', 'a') as f:
             f.write("bbx: {}, bbx_gt: {}\n".format(bbx, bbx_gt))
     print("average IOU is {:.3f}".format(
         total_iou/len(single_plane_image_names)))
 
-def demo_single_image(args, image_name):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    feature_extractor = torchvision.models.vgg16(
-        pretrained=True).features.to(device)
-    dqn = DQN(device)
-    dqn.eval_net.load_state_dict(torch.load(
-        'eval_net1.pth', map_location=torch.device('cpu')))
-    dqn.eval_net.eval()
-    dqn.eval_net.to(device)
-    subscale = args.Subscale
-    trans = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-    ])
 
-    image_path = os.path.join(
-        path_voc_test , "JPEGImages", image_name + ".jpg")
-    image_original = Image.open(image_path)
-    width, height = image_original.size
-    bbx_gt = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc_test)[
-        0][1:]
-
-    image = init_process(image_original, trans).to(device)
-    bbx = [0, width, 0, height]
-    history_action = np.zeros(his_actions*NUM_ACTIONS)
-    with torch.no_grad():
-        vector = feature_extractor( 
-            image).cpu().detach().numpy().reshape(7*7*512)
-    state = np.concatenate([history_action, vector])
-    step = 0
-
-    while step < 10:
-        iou = cal_iou(bbx, bbx_gt)
-        print('iou co sai khong:', iou)
-        if iou > 0.5:
-            action = 5
-        else:
-            action = dqn.choose_action(state, args.EPISILO)
-        print(action)
-        new_bbx = update_bbx(bbx, action)
-        reward = reward_func(bbx, new_bbx, bbx_gt, action)
-
-        action_vec = np.zeros(NUM_ACTIONS)
-        action_vec[action] = 1.0
-        history_action = np.concatenate(
-            [history_action[NUM_ACTIONS:], action_vec])
-
-        with torch.no_grad():
-            vector = feature_extractor(inter_process(image_original, new_bbx, trans).to(
-                device)).cpu().detach().numpy().reshape(7*7*512)
-            print(vector)
-            num_zeros = np.count_nonzero(vector == 0)
-            print(vector.shape)
-            print(num_zeros)
-        next_state = np.concatenate([history_action, vector])
-
-        dqn.store_transition(state, action, reward, next_state)
-
-        if action == 5:
-            print(f'while terminal step:{step}')
-            #break
-            continue
-
-        state = next_state
-        bbx = new_bbx
-        step += 1
-        print(f'while terminal step:{step}')
-        # Visualize the bounding box at each step
-        draw = ImageDraw.Draw(image_original)
-        if iou>0.2:
-            draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
-        draw.rectangle([bbx_gt[0], bbx_gt[2], bbx_gt[1], bbx_gt[3]], outline='blue')
-        image_original.show()
-        # save image
-        image_original.save('output/{}_step{}.jpg'.format(image_name, step))
-        time.sleep(0.5)
-    draw = ImageDraw.Draw(image_original)
-    draw.rectangle([bbx[0], bbx[2], bbx[1], bbx[3]], outline='red')
-    image_original.show()
-    print("Final bounding box:", bbx)
-    print("Ground truth bounding box:", bbx_gt)
-    print("Final IOU:", cal_iou(bbx, bbx_gt))
-    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Hierarchical Object Detection with Deep Reinforcement Learning')
     parser.add_argument('--gpu-devices', default='1', type=str,
                         help='gpu device ids for CUDA_VISIBLE_DEVICES')
     parser.add_argument('--use_gpu', default=True, action='store_true')
-    parser.add_argument('--EPISILO', type=int, default=1)
-    parser.add_argument('--Subscale', type=float, default=3/4)
-    parser.add_argument('--image_name', type=str, default='001373',
-                        help='name of the image for demonstration')
+    parser.add_argument('--EPISILO', type=int, default=1.0)
+
     main(parser.parse_args())
-    #
-    #args = parser.parse_args()
-    #demo_single_image(args, args.image_name)

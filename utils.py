@@ -17,7 +17,7 @@ def cal_iou(bbx, bbx_gt):
 
 def reward_func(bbx, new_bbx, bbx_gt, action):
     if action == 5:
-        if cal_iou(new_bbx, bbx_gt) > 0.4:
+        if cal_iou(new_bbx, bbx_gt) > 0.5:
             return 3
         else:
             return -3

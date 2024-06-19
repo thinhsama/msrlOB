@@ -1,7 +1,7 @@
 import torch
 import torchvision
 from models.Q_net import Q_zoom, Q_refine
-from data import load_images_names_in_data_set, get_bb_of_gt_from_pascal_xml_annotation, get_all_annotations
+from data import load_images_names_in_data_set, get_bb_of_gt_from_pascal_xml_annotation
 import torchvision.transforms as T
 import torch
 import torch.nn as nn
@@ -51,7 +51,7 @@ class DQN():
         state = torch.unsqueeze(torch.FloatTensor(state), 0).to(
             self.device)  # get a 1D array
         if np.random.randn() <= EPISILO:  # random policy
-            action = np.random.randint(0, NUM_ACTIONS)
+            action = np.random.randint(0, NUM_ACTIONS-1)
         else:  # greedy policy
             action_value = self.eval_net.forward(state)
             action = torch.max(action_value, 1)[1].cpu().item()
@@ -115,59 +115,28 @@ def inter_process(image, bbx, transform=None):
     return image_crop.unsqueeze(0)
 
 
-def update_bbx(bbx, action):
-    new_bbx = np.zeros(4)
-    if action == 0:  # top left
-        new_bbx[0] = bbx[0]  # x1
-        new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
-        new_bbx[2] = bbx[2]  # y1
-        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
-    elif action == 1:  # top right
-        new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
-        new_bbx[1] = bbx[1]  # x2
-        new_bbx[2] = bbx[2]  # y1
-        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
-    elif action == 2:  # lower left
-        new_bbx[0] = bbx[0]  # x1
-        new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
-        new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
-        new_bbx[3] = bbx[3]  # y2
-    elif action == 3:  # lower right
-        new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
-        new_bbx[1] = bbx[1]  # x2
-        new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
-        new_bbx[3] = bbx[3]  # y2
-    elif action == 4:  # center
-        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
-        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
-        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
-        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
-    elif action == 5:
-        new_bbx = bbx
-    return new_bbx
-
 # def update_bbx(bbx, action):
 #     new_bbx = np.zeros(4)
-#     if action == 0:  # left
+#     if action == 0:  # top left
 #         new_bbx[0] = bbx[0]  # x1
 #         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
 #         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[3] #+ (bbx[3]-bbx[2]) * subscale  # y2
-#     elif action == 1:  # right
+#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+#     elif action == 1:  # top right
 #         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
 #         new_bbx[1] = bbx[1]  # x2
 #         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[3] # + (bbx[3]-bbx[2]) * subscale  # y2
-#     elif action == 2:  # bot 
+#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+#     elif action == 2:  # lower left
 #         new_bbx[0] = bbx[0]  # x1
-#         new_bbx[1] = bbx[1] #+ (bbx[1]-bbx[0]) * subscale  # x2
+#         new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
 #         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
 #         new_bbx[3] = bbx[3]  # y2
-#     elif action == 3:  # top
-#         new_bbx[0] = bbx[0]  #- (bbx[1]-bbx[0]) * subscale  # x1
+#     elif action == 3:  # lower right
+#         new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
 #         new_bbx[1] = bbx[1]  # x2
-#         new_bbx[2] = bbx[2]  # y1
-#         new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+#         new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
+#         new_bbx[3] = bbx[3]  # y2
 #     elif action == 4:  # center
 #         new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
 #         new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
@@ -176,6 +145,37 @@ def update_bbx(bbx, action):
 #     elif action == 5:
 #         new_bbx = bbx
 #     return new_bbx
+
+def update_bbx(bbx, action):
+    new_bbx = np.zeros(4)
+    if action == 0:  # left
+        new_bbx[0] = bbx[0]  # x1
+        new_bbx[1] = bbx[0] + (bbx[1]-bbx[0]) * subscale  # x2
+        new_bbx[2] = bbx[2]  # y1
+        new_bbx[3] = bbx[3] #+ (bbx[3]-bbx[2]) * subscale  # y2
+    elif action == 1:  # right
+        new_bbx[0] = bbx[1] - (bbx[1]-bbx[0]) * subscale  # x1
+        new_bbx[1] = bbx[1]  # x2
+        new_bbx[2] = bbx[2]  # y1
+        new_bbx[3] = bbx[3] # + (bbx[3]-bbx[2]) * subscale  # y2
+    elif action == 2:  # bot 
+        new_bbx[0] = bbx[0]  # x1
+        new_bbx[1] = bbx[1] #+ (bbx[1]-bbx[0]) * subscale  # x2
+        new_bbx[2] = bbx[3] - (bbx[3]-bbx[2]) * subscale  # y1
+        new_bbx[3] = bbx[3]  # y2
+    elif action == 3:  # top
+        new_bbx[0] = bbx[0]  #- (bbx[1]-bbx[0]) * subscale  # x1
+        new_bbx[1] = bbx[1]  # x2
+        new_bbx[2] = bbx[2]  # y1
+        new_bbx[3] = bbx[2] + (bbx[3]-bbx[2]) * subscale  # y2
+    elif action == 4:  # center
+        new_bbx[0] = (bbx[0]+bbx[1])/2-(bbx[1]-bbx[0]) * subscale/2  # x1
+        new_bbx[1] = (bbx[0]+bbx[1])/2+(bbx[1]-bbx[0]) * subscale/2  # x2
+        new_bbx[2] = (bbx[2]+bbx[3])/2-(bbx[3]-bbx[2]) * subscale/2  # y1
+        new_bbx[3] = (bbx[2]+bbx[3])/2+(bbx[3]-bbx[2]) * subscale/2  # y2
+    elif action == 5:
+        new_bbx = bbx
+    return new_bbx
 
 def main(args):
     # best reward is set to -inf
@@ -195,8 +195,8 @@ def main(args):
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
             image_name, path_voc)
-        #if (len(annotation) > 1):
-        #    continue
+        if (len(annotation) > 1):
+            continue
         single_plane_image_names.append(image_name)
         single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...]
 
@@ -269,7 +269,7 @@ def main(args):
                 step += 1
 
         if (EPISILO > 0.1):
-            EPISILO -= 0.1
+            EPISILO -= 0.05
         print("episode: {} , this epoch reward is {}".format(
             i, round(ep_reward, 3)))  # 0.001 precision
 
@@ -295,8 +295,8 @@ def main(args):
     for image_name in image_names:
         annotation = get_bb_of_gt_from_pascal_xml_annotation(
             image_name, path_voc_test)
-        #if (len(annotation) > 1):
-        #    continue
+        if (len(annotation) > 1):
+            continue
         single_plane_image_names.append(image_name)
         single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...
 
@@ -304,7 +304,6 @@ def main(args):
     np.save('single_plane_image_names.npy', single_plane_image_names)
     np.save('single_plane_image_gts.npy', single_plane_image_gts)
     print("single_plane_image_names and single_plane_image_gts saved")
-    EPISILO = -100
     # print out the average IOU
     total_iou = 0
     for index, image_name in enumerate(single_plane_image_names):
@@ -324,7 +323,7 @@ def main(args):
         step = 0
         while (step < 10):
             iou = cal_iou(bbx, bbx_gt)
-            if iou > 0.4:
+            if iou > 0.5:
                 action = 5
             else:
                 action = dqn.choose_action(state, EPISILO)
@@ -334,13 +333,7 @@ def main(args):
             state = np.concatenate([history_action, vector])
             bbx = new_bbx
             step += 1
-        annotations = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc_test)
-        ma_iou = 0
-        for i in range(len(annotations)):
-            cur_bbx = annotations[i][1:]
-            ma_iou = max(ma_iou, cal_iou(bbx, cur_bbx))
-        total_iou += ma_iou
-        #total_iou += cal_iou(bbx, bbx_gt)
+        total_iou += cal_iou(bbx, bbx_gt)
         # write out bbx, bbx_gt to file
         with open('bbx.txt', 'a') as f:
             f.write("bbx: {}, bbx_gt: {}\n".format(bbx, bbx_gt))
@@ -436,11 +429,11 @@ if __name__ == '__main__':
     parser.add_argument('--gpu-devices', default='1', type=str,
                         help='gpu device ids for CUDA_VISIBLE_DEVICES')
     parser.add_argument('--use_gpu', default=True, action='store_true')
-    parser.add_argument('--EPISILO', type=int, default=1)
+    parser.add_argument('--EPISILO', type=int, default=1.0)
     parser.add_argument('--Subscale', type=float, default=3/4)
     parser.add_argument('--image_name', type=str, default='001373',
                         help='name of the image for demonstration')
-    main(parser.parse_args())
+    #main(parser.parse_args())
     #
-    #args = parser.parse_args()
-    #demo_single_image(args, args.image_name)
+    args = parser.parse_args()
+    demo_single_image(args, args.image_name)
