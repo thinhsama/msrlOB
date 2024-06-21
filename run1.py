@@ -28,8 +28,8 @@ path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
 #path_voc = r"e:\msrlOB-1\archive (4)\VOCtrainval_06-Nov-2007\VOC2007"
 #path_voc_test = r"e:\msrlOB-1\archive (4)\VOCtest_06-Nov-2007\VOC2007"
 #path_voc_test = path_voc
-path_voc = "/kaggle/input/pascal-voc-2007/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/"
-path_voc_test = "/kaggle/input/pascal-voc-2007/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/"
+path_voc = "/content/drive/MyDrive/archive (4)/VOCtrainval_06-Nov-2007/VOC2007"
+path_voc_test = "/content/drive/MyDrive/archive (4)/VOCtest_06-Nov-2007/VOC2007"
 class DQN():
     """docstring for DQN"""
 
