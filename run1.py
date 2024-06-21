@@ -14,12 +14,12 @@ from utils import cal_iou, reward_func
 import time
 
 # hyper-parameters
-BATCH_SIZE = 100
+BATCH_SIZE = 50
 LR = 1e-6
 GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
-epochs = 150
+epochs = 50
 NUM_ACTIONS = 6
 his_actions = 4
 subscale = 3/4
@@ -310,7 +310,7 @@ def main(args):
     total_iou = 0
     for index, image_name in enumerate(single_plane_image_names):
         image_path = os.path.join(
-            path_voc_test + "JPEGImages", image_name + ".jpg")
+            path_voc_test , "JPEGImages", image_name + ".jpg")
         image_original = Image.open(image_path)
         width, height = image_original.size
         bbx_gt = single_plane_image_gts[index]
