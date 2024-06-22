@@ -28,8 +28,11 @@ path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
 #path_voc = r"e:\msrlOB-1\archive (4)\VOCtrainval_06-Nov-2007\VOC2007"
 #path_voc_test = r"e:\msrlOB-1\archive (4)\VOCtest_06-Nov-2007\VOC2007"
 #path_voc_test = path_voc
-path_voc = "/kaggle/input/pascal-voc-2007/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/"
-path_voc_test = "/kaggle/input/pascal-voc-2007/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/"
+#path_voc = "/kaggle/input/pascal-voc-2007/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/"
+#path_voc_test = "/kaggle/input/pascal-voc-2007/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/"
+path_voc = "/content/drive/MyDrive/archive (4)/VOCtrainval_06-Nov-2007/VOC2007"
+path_voc_test = "/content/drive/MyDrive/archive (4)/VOCtest_06-Nov-2007/VOC2007"
+path_voc_2012 = "/content/drive/MyDrive/archive (4)/VOC2012_train_val"
 class DQN():
     """docstring for DQN"""
 
@@ -91,7 +94,7 @@ class DQN():
         q_target = torch.where(
             batch_action != 5, q_target_unterminated, batch_reward)
         loss = self.loss_func(q_eval, q_target)
-        print("step loss is {:.3f}".format(loss.cpu().detach().item()))
+        #print("step loss is {:.3f}".format(loss.cpu().detach().item()))
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -190,6 +193,8 @@ def main(args):
         pretrained=True).features.to(device)
     single_plane_image_names = []
     single_plane_image_gts = []
+    single_plane_image_names1 = []
+    single_plane_image_gts1 = []
     dqn = DQN(device)
     EPISILO = args.EPISILO
     subscale = args.Subscale
@@ -200,7 +205,15 @@ def main(args):
         #    continue
         single_plane_image_names.append(image_name)
         single_plane_image_gts.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...]
-
+    image_names1 = np.array(load_images_names_in_data_set(
+        'aeroplane_trainval', path_voc_2012))
+    for image_name in image_names1:
+        annotation = get_bb_of_gt_from_pascal_xml_annotation(
+            image_name, path_voc_2012)
+        #if (len(annotation) > 1):
+        #    continue
+        single_plane_image_names1.append(image_name)
+        single_plane_image_gts1.append(annotation[0][1:])  # [[x1,x2,y1,y2] ...]
     trans = T.Compose([
         T.Resize((224, 224)),
         T.ToTensor(),
@@ -258,7 +271,7 @@ def main(args):
                 ep_reward += reward
 
                 if dqn.memory_counter >= MEMORY_CAPACITY:
-                    print("episode: {},".format(i), end=' ')
+                    #print("episode: {},".format(i), end=' ')
                     dqn.learn()
 
                 # termation
@@ -268,7 +281,66 @@ def main(args):
                 state = next_state
                 bbx = new_bbx
                 step += 1
+        for index, image_name in enumerate(single_plane_image_names1):
+            image_path = os.path.join(
+                path_voc_2012, "JPEGImages", image_name + ".jpg")
+            image_original = Image.open(image_path)
+            width, height = image_original.size
+            # image_original = image_original.resize((224,224))
+            bbx_gt = single_plane_image_gts[index]
+            # draw = ImageDraw.Draw(image_original)
+            # draw.rectangle([bbx_gt[0],bbx_gt[2],bbx_gt[1],bbx_gt[3]],outline='red')
+            # image_original.show()
+            # return
 
+            image = init_process(image_original, trans).to(device)
+            # print(image.shape)
+            bbx = [0, width, 0, height]
+            history_action = np.zeros(his_actions*NUM_ACTIONS)
+            with torch.no_grad():
+                vector = feature_exactrator(
+                    image).cpu().detach().numpy().reshape(7*7*512)
+            state = np.concatenate([history_action, vector])
+            step = 0
+            while (step < 10):
+                iou = cal_iou(bbx, bbx_gt)
+                if (iou > 0.4) & (i<100):
+                    action = 5
+                else:
+                    action = dqn.choose_action(state, EPISILO)
+                # print(action)
+
+                # execute action and step to new bbx
+                new_bbx = update_bbx(bbx, action)
+                reward = reward_func(bbx, new_bbx, bbx_gt, action)
+
+                # get new state
+                action_vec = np.zeros(NUM_ACTIONS)
+                action_vec[action] = 1.0
+                history_action = np.concatenate(
+                    [history_action[NUM_ACTIONS:], action_vec])
+
+                with torch.no_grad():
+                    vector = feature_exactrator(inter_process(image_original, new_bbx, trans).to(
+                        device)).cpu().detach().numpy().reshape(7*7*512)
+                next_state = np.concatenate([history_action, vector])
+
+                # store transition
+                dqn.store_transition(state, action, reward, next_state)
+
+                ep_reward += reward
+
+                if dqn.memory_counter >= MEMORY_CAPACITY:
+                    #print("episode: {},".format(i), end=' ')
+                    dqn.learn()
+
+                # termation
+                if action == 5:
+                    break
+
+                state = next_state
+                bbx = new_bbx
+                step += 1
         if (EPISILO > 0.1):
             EPISILO -= 0.1
         print("episode: {} , this epoch reward is {}".format(
