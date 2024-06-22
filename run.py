@@ -287,7 +287,7 @@ def main(args):
             image_original = Image.open(image_path)
             width, height = image_original.size
             # image_original = image_original.resize((224,224))
-            bbx_gt = single_plane_image_gts[index]
+            bbx_gt = single_plane_image_gts1[index]
             # draw = ImageDraw.Draw(image_original)
             # draw.rectangle([bbx_gt[0],bbx_gt[2],bbx_gt[1],bbx_gt[3]],outline='red')
             # image_original.show()
