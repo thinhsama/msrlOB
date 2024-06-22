@@ -19,10 +19,10 @@ LR = 1e-6
 GAMMA = 0.9
 MEMORY_CAPACITY = 1000
 Q_NETWORK_ITERATION = 100
-epochs = 100
+epochs = 50
 NUM_ACTIONS = 6
 his_actions = 4
-subscale = 3/4
+subscale = 1/2
 NUM_STATES = 7*7*512+his_actions*NUM_ACTIONS
 path_voc = "/home/hanj/dataset/VOCdevkit/VOC2007/"
 #path_voc = r"e:\msrlOB-1\archive (4)\VOCtrainval_06-Nov-2007\VOC2007"
@@ -244,7 +244,7 @@ def main(args):
             step = 0
             while (step < 10):
                 iou = cal_iou(bbx, bbx_gt)
-                if (iou > 0.4) & (i<100):
+                if (iou > 0.5) & (i<100):
                     action = 5
                 else:
                     action = dqn.choose_action(state, EPISILO)
@@ -304,7 +304,7 @@ def main(args):
             step = 0
             while (step < 10):
                 iou = cal_iou(bbx, bbx_gt)
-                if (iou > 0.4) & (i<100):
+                if (iou > 0.5) & (i<100):
                     action = 5
                 else:
                     action = dqn.choose_action(state, EPISILO)
@@ -382,7 +382,7 @@ def main(args):
     total_iou = 0
     for index, image_name in enumerate(single_plane_image_names):
         image_path = os.path.join(
-            path_voc_test + "JPEGImages", image_name + ".jpg")
+            path_voc_test , "JPEGImages", image_name + ".jpg")
         image_original = Image.open(image_path)
         width, height = image_original.size
         bbx_gt = single_plane_image_gts[index]
@@ -397,7 +397,7 @@ def main(args):
         step = 0
         while (step < 10):
             iou = cal_iou(bbx, bbx_gt)
-            if iou > 0.4:
+            if iou > 0.5:
                 action = 5
             else:
                 action = dqn.choose_action(state, EPISILO)
@@ -510,7 +510,7 @@ if __name__ == '__main__':
                         help='gpu device ids for CUDA_VISIBLE_DEVICES')
     parser.add_argument('--use_gpu', default=True, action='store_true')
     parser.add_argument('--EPISILO', type=int, default=1)
-    parser.add_argument('--Subscale', type=float, default=3/4)
+    parser.add_argument('--Subscale', type=float, default=1/2)
     parser.add_argument('--image_name', type=str, default='001373',
                         help='name of the image for demonstration')
     main(parser.parse_args())
